@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="./styles/base--output.css" rel="stylesheet">
+</head>
+<body>
+    <div class="w-[90%] max-w-5xl mx-auto">
+        <main>
+            <div class="w-full py-10">
+                <h4 class="text-4xl font-bold mb-2">📫Verifique se o e-mail é <span class="text-green-600">produtivo</span> ou <span class="text-red-600">improdutivo</span></h4>
+                <p class="text-lg">Classifique seus e-mails como produtivo ou improdutivo e receba sugestões de resposta de forma personalizada. Nosso sistema usa uma inteligência artificial para agilizar sua rotina.</p>
+                <div class="mt-5 w-full">
+                    <form onsubmit="classifyEmail(event)" class="flex flex-col justify-center w-full mt-4">
+                        <div class="flex items-center justify-center w-full mb-4">
+                            <label for="dropzone-file" ondrop="onDropzoneDrop(event)" ondragover="onDropzoneDragover(event)" ondragleave="onDropzoneDragleave(event)" id="dropzone" class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                                    </svg>
+                                    <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Clique para selecionar um arquivo</span> ou arraste e solte aqui</p>
+                                    <p class="text-xs text-gray-500">TXT e PDF (Tamanho máximo: 2MB)</p>
+                                </div>
+                                <input id="dropzone-file" type="file" class="hidden" />
+                            </label>
+                        </div>
+                        <label for="email" class="text-md font-semibold">Ou cole o e-mail aqui:</label>
+                        <textarea id="email" name="email" class="w-full p-4 border-2 border-gray-300 outline-gray-300 rounded-xl resize-none hover:bg-neutral-50 mt-4" rows="8" autocomplete="false" spellcheck="false" placeholder="Digite o e-mail"></textarea>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 transition-colors text-white font-semibold py-3 px-4 rounded-lg cursor-pointer w-full mt-4">Classificar e-mail</button>
+                    </form>
+                </div>
+                <div class="mt-8">
+                    <h4 class="text-xl text-gray-800 mb-2">(0) E-mails processados </h4>
+                    <div class="w-full h-[1px] bg-gray-800"></div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            
+        </footer>
+    </div>
+    <script src="./javascript/toast-manager.js" type="text/javascript"></script>
+    <script src="./javascript/main.js" type="text/javascript"></script>
+</body>
+</html>
