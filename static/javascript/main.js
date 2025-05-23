@@ -29,13 +29,29 @@ const MESSAGES = {
     }
 };
 
+Handlebars.registerHelper('eq', function(a, b) {
+    return a === b;
+});
+
+Handlebars.registerHelper('noteq', function(a, b) {
+    return a !== b;
+});
+
+const templateCache = new Map();
+async function loadTemplate(path) {
+  if (templateCache.has(path)) {
+    return templateCache.get(path);
+  }
+  const response = await fetch(path);
+  const templateText = await response.text();
+  templateCache.set(path, templateText);
+  return templateText;
+}
+
 class EmailProcessor {
     constructor() {
         this.processedEmails = [];
-        this.templates = {
-            productive: null,
-            unproductive: null
-        };
+        this.template = null;
         this.init();
     }
 
@@ -45,15 +61,9 @@ class EmailProcessor {
 
     async preloadTemplates() {
         try {
-            const [productiveResponse, unproductiveResponse] = await Promise.all([
-                fetch('/components/processed-email/productive-processed-email.html'),
-                fetch('/components/processed-email/unproductive-processed-email.html')
-            ]);
-
-            this.templates.productive = await productiveResponse.text();
-            this.templates.unproductive = await unproductiveResponse.text();
+            this.template = await loadTemplate('/components/processed-email.handlebars');
         } catch (error) {
-            console.error('Failed to preload templates:', error);
+            console.error('Não foi possível carregar os templates', error);
         }
     }
 
@@ -65,8 +75,8 @@ class EmailProcessor {
         return this.processedEmails;
     }
 
-    getTemplate(classification) {
-        return this.templates[classification];
+    getTemplate() {
+        return Handlebars.compile(this.template);
     }
 }
 
@@ -245,19 +255,20 @@ class UIManager {
     }
 
     async renderEmailComponent(email, container) {
-        let componentHtml = this.emailProcessor.getTemplate(email.classification);
-        
-        if (!componentHtml) {
-            const response = await fetch(`/components/processed-email/${email.classification}-processed-email.html`);
-            componentHtml = await response.text();
-        }
+        let template = this.emailProcessor.getTemplate();
 
-        const sanitizedEmail = Utils.escapeHtml(DOMPurify.sanitize(email.email));
         
-        componentHtml = componentHtml
-            .replace(/{{id}}/g, email.id)
-            .replace("{{email}}", sanitizedEmail)
-            .replace("{{classification}}", Utils.translateClassification(email.classification));
+        if (!template)
+            return;
+
+        const templateData = {
+            id: email.id,
+            email: Utils.escapeHtml(DOMPurify.sanitize(email.email)),
+            classification: Utils.translateClassification(email.classification),
+            suggestion: email.suggestion ? Utils.escapeHtml(DOMPurify.sanitize(email.suggestion)) : null
+        };
+        
+        const componentHtml = template(templateData);
 
         const wrapper = document.createElement('div');
         wrapper.innerHTML = componentHtml;
@@ -370,6 +381,29 @@ class EmailApp {
         window.goToProcessedEmail = this.uiManager.goToProcessedEmail.bind(this.uiManager);
         window.suggestEmailAnswer = EmailService.suggestResponse;
     }
+}
+
+function copyToClipboard(event) {
+    const button = event.currentTarget;
+    const text = button.dataset.suggestion;
+        
+    navigator.clipboard.writeText(text).then(() => {
+        button.innerText = 'Copiado!';
+        button.classList.replace("bg-blue-600", "bg-green-600");
+        
+        setTimeout(() => {
+            button.innerText = `Copiar`;
+            button.classList.replace("bg-green-600", "bg-blue-600");
+        }, 2000);
+    }).catch(() => {
+        button.innerText = `Erro`;
+        button.classList.replace("bg-blue-600", "bg-red-600");
+        
+        setTimeout(() => {
+            button.innerHTML = `Copiar`;
+            button.classList.replace("bg-red-600", "bg-blue-600");
+        }, 2000);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
