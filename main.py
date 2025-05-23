@@ -2,13 +2,13 @@ import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from models.classifier import BertClassifier, get_model
+from models.classifier import HuggingFaceClassifier, get_model
 from models.suggestion import GPTSuggestion, get_model as get_gpt_model
 
 app = FastAPI()
@@ -27,16 +27,26 @@ class SuggestRequest(BaseModel):
     email: str
 
 @app.post('/classify')
-def predict(request: PredictRequest, model: BertClassifier = Depends(get_model)):
-    print(request.email)
-    response = model.predict(request.email)
-    return {"prediction": str(response)}
+def classify(request: PredictRequest, model: HuggingFaceClassifier = Depends(get_model)):
+    try:
+        prediction = model.predict(request.email)
+        match prediction:
+            case "1":
+                return {"classification": "productive"}
+            case "-1":
+                return {"classification": "unproductive"}
+            case _:
+                raise HTTPException(status_code=500, detail="Invalid model output")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @app.post('/suggest')
 def predict(request: SuggestRequest, model: GPTSuggestion = Depends(get_gpt_model)):
-    print(request.email)
     response = model.suggest(request.email)
-    return {"prediction": str(response)}
+    if response is None:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    else:
+        return {"suggestion": str(response)}
 
 if os.path.isdir("static"):
     app.mount("/", StaticFiles(directory="static", html=True), name="static")

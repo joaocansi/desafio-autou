@@ -22,44 +22,69 @@ class ToastManager {
             }
         `;
         document.head.appendChild(style);
+
+        this.toastTypes = ['error', 'success', 'warning', 'loading'];
+        this.templateCache = new Map();
+        this.preloadTemplates();
     }
 
-    async showToast(type, message) {
-        const toastTemplatePath = `/components/toasts/${type}-toast.html`;
-
-        try {
-            const response = await fetch(toastTemplatePath);
-            if (!response.ok) {
-                throw new Error(`Failed to load toast template: ${toastTemplatePath}`);
+    async preloadTemplates() {
+        for (const type of this.toastTypes) {
+            const path = `/components/toasts/${type}-toast.html`;
+            try {
+                const response = await fetch(path);
+                if (response.ok) {
+                    const template = await response.text();
+                    this.templateCache.set(type, template.trim());
+                }
+            } catch (e) {
+                console.warn(`Failed to preload toast template: ${path}`);
             }
+        }
+    }
 
-            const template = await response.text();
-            const toastElement = document.createElement('div');
-            toastElement.innerHTML = template.trim();
-            const toastContent = toastElement.firstChild;
-
-            const messageElement = toastContent.querySelector('.toast-message');
-            if (messageElement) {
-                messageElement.textContent = message;
+    async showToast(type, message, options = {}) {
+        let template = this.templateCache.get(type);
+        if (!template) {
+            const toastTemplatePath = `/components/toasts/${type}-toast.html`;
+            try {
+                const response = await fetch(toastTemplatePath);
+                if (!response.ok) throw new Error(`Failed to load toast template: ${toastTemplatePath}`);
+                template = await response.text();
+                this.templateCache.set(type, template.trim());
+            } catch (error) {
+                console.error('Error displaying toast:', error);
+                return;
             }
+        }
 
-            toastContent.classList.add('toast');
-            this.toastContainer.appendChild(toastContent);
+        const toastElement = document.createElement('div');
+        toastElement.innerHTML = template;
+        const toastContent = toastElement.firstChild;
 
-            const closeButton = toastContent.querySelector('[data-dismiss-target]');
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    toastContent.classList.remove('show');
-                    setTimeout(() => {
-                        this.toastContainer.removeChild(toastContent);
-                    }, 300);
-                });
-            }
+        const messageElement = toastContent.querySelector('.toast-message');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
 
-            requestAnimationFrame(() => {
-                toastContent.classList.add('show');
+        toastContent.classList.add('toast');
+        this.toastContainer.appendChild(toastContent);
+
+        const closeButton = toastContent.querySelector('[data-dismiss-target]');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                toastContent.classList.remove('show');
+                setTimeout(() => {
+                    this.toastContainer.removeChild(toastContent);
+                }, 300);
             });
+        }
 
+        requestAnimationFrame(() => {
+            toastContent.classList.add('show');
+        });
+
+        if (!options.persist) {
             setTimeout(() => {
                 toastContent.classList.remove('show');
                 setTimeout(() => {
@@ -68,9 +93,9 @@ class ToastManager {
                     }
                 }, 300);
             }, 5000);
-        } catch (error) {
-            console.error('Error displaying toast:', error);
         }
+
+        return toastContent;
     }
 
     error(message) {
@@ -84,6 +109,36 @@ class ToastManager {
     warning(message) {
         this.showToast('warning', message);
     }
+
+    async loading(promise, loadingMessage = 'Carregando...', successMessage = 'Concluído!', errorMessage = 'Erro ao processar') {
+        const toast = await this.showToast('loading', loadingMessage, { persist: true });
+
+        try {
+            const result = await promise;
+            if (toast) {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (this.toastContainer.contains(toast)) {
+                        this.toastContainer.removeChild(toast);
+                    }
+                }, 300);
+            }
+            this.success(successMessage);
+            return result;
+        } catch (err) {
+            if (toast) {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (this.toastContainer.contains(toast)) {
+                        this.toastContainer.removeChild(toast);
+                    }
+                }, 300);
+            }
+            this.error(errorMessage);
+            throw err;
+        }
+    }
 }
 
-window.toastManager = new ToastManager();
+const toastMessage = new ToastManager();
+window.toastManager = toastMessage;
