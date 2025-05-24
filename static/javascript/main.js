@@ -468,6 +468,8 @@ class EmailClassificationHandler {
             const chips = customizeSuggestionContainer.querySelectorAll('.chipc');
             chips.forEach(chip => chip.remove());
         }
+
+        customizeSuggestion.classList.add("hidden");
     }
 }
 
