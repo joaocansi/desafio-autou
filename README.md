@@ -4,25 +4,15 @@ Este projeto é uma aplicação Python para o desafio técnico da Autou. A aplic
 
 ## Requisitos
 
-- Python 3.8 ou superior
-- Pip (gerenciador de pacotes do Python)
-- Virtualenv (opcional, mas recomendado)
+- Python 3.10 ou superior
 
 ## Instalação
 
 1. Clone o repositório:
 
    ```bash
-   git clone https://github.com/seu-usuario/desafio-tecnico-autou.git
-   cd desafio-tecnico-autou/api
-   ```
-
-2. Crie e ative um ambiente virtual (opcional, mas recomendado):
-
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # Linux/MacOS
-   venv\Scripts\activate     # Windows
+   git clone https://github.com/joaocansi/desafio-autou.git
+   cd desafio-autou/
    ```
 
 3. Instale as dependências:
@@ -36,34 +26,34 @@ Este projeto é uma aplicação Python para o desafio técnico da Autou. A aplic
 1. Execute a aplicação:
 
    ```bash
-   python app.py
+   uvicorn main:app --reload
    ```
 
-2. Acesse a API em `http://localhost:5000`.
+2. Acesse a API em `http://localhost:8000`.
 
 ## Estrutura do Projeto
-
 ```
-api/
-├── app.py          # Arquivo principal da aplicação
-├── requirements.txt # Dependências do projeto
-├── README.md       # Documentação do projeto
-└── ...             # Outros arquivos e diretórios
-```
-
-## Testes
-
-Para rodar os testes, utilize o comando:
-
-```bash
-pytest
+desafio-autou/
+├─ classification/                     # módulo de classificação de e-mails
+│  ├─ core/                            
+│  │  ├─ model/                        
+│  │  │  ├─ hugging_face.py            # implementação do modelo de classificação (HuggingfaceSpace + Bert)
+│  │  │  ├─ classification_mode.py     # interface do modelo de classificação
+│  ├─ controller.py
+│  ├─ service.py
+├─ suggestion/                         # módulo de segestão de e-mails
+│  ├─ core/
+│  │  ├─ model/
+│  │  │  ├─ openai.py                  # implementação do modelo de sugestão (GPT 4o-mini)
+│  │  │  ├─ suggestion_model.py        # interface do modelo de sugestão
+│  ├─ controller.py
+│  ├─ service.py
+├─ static/                             # arquivos da interface web
+├─ terraform/                          # arquivos para deploy automático no Render
+├─ main.py                             # inicializa a aplicação
+├─ requirements.py                     # arquivo com todos os requisitos da aplicação
 ```
 
 ## Contribuição
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests.
-
-## Licença
-
-Este projeto está licenciado sob a [MIT License](LICENSE).
-# desafio-autou
