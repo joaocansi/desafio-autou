@@ -21,10 +21,7 @@ resource "render_web_service" "api" {
     native_runtime = {
       auto_deploy   = true
       branch        = "main"
-      build_command = "pip isntall -r requirements.txt"
-      build_filter = {
-        paths         = ["src/**"]
-      }
+      build_command = "pip install -r requirements.txt"
       repo_url = "https://github.com/joaocansi/desafio-autou"
       runtime  = "python"
     }
