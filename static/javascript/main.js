@@ -208,6 +208,9 @@ class DropzoneHandler {
             this.populateTextarea(content);
         } catch (error) {
             window.toastManager?.error("Não foi possível ler o arquivo.");
+        } finally {
+            this.input.value = '';
+            e.dataTransfer.clearData();
         }
     }
 
@@ -497,10 +500,9 @@ class EmailClassificationHandler {
         
         if (customizeSuggestionContainer) {
             const chips = customizeSuggestionContainer.querySelectorAll('.chipc');
+            customizeSuggestion.classList.add("hidden");
             chips.forEach(chip => chip.remove());
         }
-
-        customizeSuggestion.classList.add("hidden");
     }
 }
 
