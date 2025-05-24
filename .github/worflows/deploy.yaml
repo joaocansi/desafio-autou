@@ -1,0 +1,32 @@
+name: CI/CD pipeline para deploy da aplicação AutoU.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform apply
+        env:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          huggingface_space: ${{ secrets.HUGGINGFACE_SPACE }}
+          render_api_key: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          export TF_VAR_openai_api_key=$openai_api_key
+          export TF_VAR_huggingface_space=$huggingface_space
+          export TF_VAR_render_api_key=$render_api_key
+          cd terraform/
+          terraform init
+          terraform plan
+          terraform apply -auto-approve
+          echo "Done!"
