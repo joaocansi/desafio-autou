@@ -14,7 +14,7 @@ provider "render" {
 
 resource "render_web_service" "api" {
   name               = "autou"
-  plan               = "hobby"
+  plan               = "starter"
   region             = "oregon"
   start_command      = "gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 1" 
 
