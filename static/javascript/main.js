@@ -1,3 +1,4 @@
+// Configuration object for file validation and UI animations
 const CONFIG = {
     fileValidation: {
         allowedTypes: ['application/pdf', 'text/plain'],
@@ -29,6 +30,7 @@ const MESSAGES = {
     }
 };
 
+// Register Handlebars helpers for template conditions
 Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
 });
@@ -37,10 +39,12 @@ Handlebars.registerHelper('noteq', function(a, b) {
     return a !== b;
 });
 
+
 const customizeSuggestion = document.getElementById('customize-suggestion');
 const customizeSuggestionInput = document.getElementById('customize-suggestion-input');
 const customizeSuggestionContainer = document.getElementById('customize-suggestion-container');
 
+// Handle Enter key to create customization chips
 customizeSuggestionInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
         if (customizeSuggestionInput.value.trim() !== '') {
@@ -64,6 +68,7 @@ suggestionCheckbox.addEventListener('change', function () {
     }
 });
 
+// Template caching system to avoid repeated HTTP requests
 const templateCache = new Map();
 async function loadTemplate(path) {
   if (templateCache.has(path)) {
@@ -77,6 +82,9 @@ async function loadTemplate(path) {
 
 window.loadTemplate = loadTemplate;
 
+/**
+ * Manages processed emails and Handlebars templates
+ */
 class EmailProcessor {
     constructor() {
         this.processedEmails = [];
@@ -109,6 +117,9 @@ class EmailProcessor {
     }
 }
 
+/**
+ * Utility functions for common operations
+ */
 const Utils = {
     escapeHtml(text) {
         return text
@@ -146,6 +157,9 @@ const Utils = {
     }
 };
 
+/**
+ * Handles drag-and-drop file upload functionality
+ */
 class DropzoneHandler {
     constructor() {
         this.dropzone = document.getElementById('dropzone');
@@ -240,6 +254,8 @@ class DropzoneHandler {
                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
                     let fullText = '';
+
+                    // Process each page of the PDF
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
                         const content = await page.getTextContent();
@@ -257,6 +273,7 @@ class DropzoneHandler {
                             .map(Number)
                             .sort((a, b) => b - a);
 
+                        // Join text items within each line, then join lines
                         const pageText = sortedY
                             .map(y => lines[y].join(' '))
                             .join('\n');
@@ -285,7 +302,11 @@ class DropzoneHandler {
     }
 }
 
+/**
+ * Service class for API calls to backend
+ */
 class EmailService {
+    // Send email for classification
     static async classifyEmail(email) {
         const response = await fetch('/classify', {
             method: 'POST',
@@ -295,6 +316,7 @@ class EmailService {
         return response;
     }
 
+    // Request response suggestion with optional customizations
     static async suggestResponse(email, customizations = []) {
         const response = await fetch('/suggest', {
             method: 'POST',
@@ -310,6 +332,7 @@ class UIManager {
         this.emailProcessor = emailProcessor;
     }
 
+    // Scroll to and highlight a specific processed email
     async goToProcessedEmail(id, classification) {
         const element = document.getElementById(`processed-email-${id}`);
         if (!element) return;
@@ -324,6 +347,7 @@ class UIManager {
         }, CONFIG.animations.highlightDuration);
     }
 
+    // Re-render the entire processed emails list
     async updateProcessedEmailsList() {
         const list = document.getElementById('processed-emails-list');
         const countElement = document.getElementById('processed-email-count');
@@ -344,6 +368,7 @@ class UIManager {
         }
     }
 
+    // Render individual email component using Handlebars template
     async renderEmailComponent(email, container) {
         let template = this.emailProcessor.getTemplate();
         
@@ -368,12 +393,16 @@ class UIManager {
     }
 }
 
+/**
+ * Handles email classification workflow and form processing
+ */
 class EmailClassificationHandler {
     constructor(emailProcessor, uiManager) {
         this.emailProcessor = emailProcessor;
         this.uiManager = uiManager;
     }
 
+    // Main handler for email classification form submission
     async handleClassification(e) {
         e.preventDefault();
         
@@ -439,6 +468,7 @@ class EmailClassificationHandler {
         return classification;
     }
 
+    // Call suggestion API with loading state management
     async generateSuggestion(email, customizations = []) {
         const suggestPromise = EmailService.suggestResponse(email, customizations);
         const response = await window.toastManager?.loading(
@@ -452,6 +482,7 @@ class EmailClassificationHandler {
         return suggestion;
     }
 
+    // Reset form after successful processing
     clearForm() {
         const emailField = document.getElementById('email');
         if (emailField)
@@ -473,6 +504,9 @@ class EmailClassificationHandler {
     }
 }
 
+/**
+ * Main application class that orchestrates all components
+ */
 class EmailApp {
     constructor() {
         this.emailProcessor = new EmailProcessor();
