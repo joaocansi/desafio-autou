@@ -11,3 +11,8 @@ variable "render_api_key" {
     default = ""
     sensitive = true
 }
+
+variable "render_owner_id" {
+    default = ""
+    sensitive = true
+}

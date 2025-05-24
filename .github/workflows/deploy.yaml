@@ -21,10 +21,12 @@ jobs:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           huggingface_space: ${{ secrets.HUGGINGFACE_SPACE }}
           render_api_key: ${{ secrets.RENDER_API_KEY }}
+          render_owner_id: ${{ secrets.RENDER_OWNER_ID }}
         run: |
           export TF_VAR_openai_api_key=$openai_api_key
           export TF_VAR_huggingface_space=$huggingface_space
           export TF_VAR_render_api_key=$render_api_key
+          export TF_VAR_render_owner_id=$render_owner_id
           cd terraform/
           terraform init
           terraform plan
