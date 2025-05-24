@@ -30,36 +30,34 @@ class ToastManager {
 
     async preloadTemplates() {
         for (const type of this.toastTypes) {
-            const path = `/components/toasts/${type}-toast.html`;
+            const path = `/components/toasts/${type}-toast.handlebars`;
             try {
-                const response = await fetch(path);
-                if (response.ok) {
-                    const template = await response.text();
-                    this.templateCache.set(type, template.trim());
-                }
+                const response = await window.loadTemplate(path);
+                this.templateCache.set(type, response);
             } catch (e) {
-                console.warn(`Failed to preload toast template: ${path}`);
+                console.warn(`Não foi possível carregar template: ${path}`);
             }
         }
     }
 
     async showToast(type, message, options = {}) {
-        let template = this.templateCache.get(type);
-        if (!template) {
-            const toastTemplatePath = `/components/toasts/${type}-toast.html`;
+        let templateData = this.templateCache.get(type);
+        if (!templateData) {
+            const toastTemplatePath = `/components/toasts/${type}-toast.handlebars`;
             try {
-                const response = await fetch(toastTemplatePath);
-                if (!response.ok) throw new Error(`Failed to load toast template: ${toastTemplatePath}`);
-                template = await response.text();
-                this.templateCache.set(type, template.trim());
+                const response = await window.loadTemplate(toastTemplatePath);
+                template = response;
+                this.templateCache.set(type, response);
             } catch (error) {
                 console.error('Error displaying toast:', error);
                 return;
             }
         }
 
+        const template = Handlebars.compile(templateData);
+        const componentHtml = template(message);
         const toastElement = document.createElement('div');
-        toastElement.innerHTML = template;
+        toastElement.innerHTML = componentHtml;
         const toastContent = toastElement.firstChild;
 
         const messageElement = toastContent.querySelector('.toast-message');

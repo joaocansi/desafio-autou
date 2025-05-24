@@ -1,10 +1,12 @@
 <div id="processed-email-{{id}}" class="w-full p-4 border-1 border-gray-300 rounded-xl shadow-sm bg-white mb-4 mt-4">
-    {{#if (eq classification "improdutivo")}}
-        <span class="email-classification bg-red-100 text-red-800 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-red-900 dark:text-red-300">
+    {{#if (eq classification "produtivo")}}
+    <span
+        class="email-classification bg-green-100 text-green-800 text-sm font-medium me-2 px-2.5 py-1 rounded-sm dark:bg-green-900 dark:text-green-300">
             {{classification}}
         </span>
     {{else}}
-        <span class="email-classification bg-green-100 text-green-800 text-sm font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
+        <span
+            class="email-classification bg-red-100 text-red-800 text-sm font-medium me-2 px-2.5 py-1 rounded-sm dark:bg-red-900 dark:text-red-300">
             {{classification}}
         </span>
     {{/if}}
@@ -15,8 +17,8 @@
             <div class="mt-3 ml-4">
                 <h6 class="text-sm font-bold mb-2">Possível resposta:</h6>
                 <div class="p-4 bg-gray-50 rounded-lg relative min-h-16">
-                    <p class="text-gray-900 text-sm break-words select-all whitespace-pre-wrap">{{suggestion}}</p>
-                    <button class="absolute right-4 top-4 bg-blue-600 px-4 py-2 font-sm text-white rounded-lg" data-suggestion="{{suggestion}}" onclick="copyToClipboard(event)">
+                    <p class="text-gray-900 text-sm break-words whitespace-pre-wrap mr-12">{{suggestion}}</p>
+                    <button class="absolute right-4 top-4 bg-blue-600 px-2 py-1 text-white rounded-lg" data-suggestion="{{suggestion}}" onclick="copyToClipboard(event)">
                         Copiar
                     </button>
                 </div>

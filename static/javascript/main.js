@@ -37,6 +37,33 @@ Handlebars.registerHelper('noteq', function(a, b) {
     return a !== b;
 });
 
+const customizeSuggestion = document.getElementById('customize-suggestion');
+const customizeSuggestionInput = document.getElementById('customize-suggestion-input');
+const customizeSuggestionContainer = document.getElementById('customize-suggestion-container');
+
+customizeSuggestionInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+        if (customizeSuggestionInput.value.trim() !== '') {
+            e.preventDefault();
+            const chipText = customizeSuggestionInput.value.trim();
+            const chip = document.createElement('div');
+            chip.className = 'bg-gray-200 rounded-[16px] px-2 py-1 flex items-center chipc';
+            chip.innerHTML = `<span class="mr-1 break-words chip-text">${chipText}</span><button onclick="this.parentElement.remove()">✕</button>`;
+            customizeSuggestionContainer.insertBefore(chip, customizeSuggestionInput);
+            customizeSuggestionInput.value = '';
+        }
+    }
+});
+
+const suggestionCheckbox = document.getElementById('suggestion-checkbox');
+suggestionCheckbox.addEventListener('change', function () {
+    if (this.checked) {
+        customizeSuggestion.classList.remove('hidden');
+    } else {
+        customizeSuggestion.classList.add('hidden');
+    }
+});
+
 const templateCache = new Map();
 async function loadTemplate(path) {
   if (templateCache.has(path)) {
@@ -47,6 +74,8 @@ async function loadTemplate(path) {
   templateCache.set(path, templateText);
   return templateText;
 }
+
+window.loadTemplate = loadTemplate;
 
 class EmailProcessor {
     constructor() {
@@ -130,6 +159,10 @@ class DropzoneHandler {
             this.dropzone.addEventListener('dragleave', this.handleDragleave.bind(this));
             this.dropzone.addEventListener('drop', this.handleDrop.bind(this));
         }
+
+        if (this.input) {
+            this.input.addEventListener('change', this.handleDropzoneInputChange.bind(this))
+        }
     }
 
     handleDragover(e) {
@@ -150,7 +183,7 @@ class DropzoneHandler {
 
         const validation = Utils.validateFile(file);
         if (!validation.valid) {
-            alert(validation.error);
+            window.toastManager?.error("Arquivo deve ser pdf ou txt");
             return;
         }
 
@@ -159,29 +192,86 @@ class DropzoneHandler {
         try {
             const content = await window.toastManager?.loading(this.readFileContent(file), MESSAGES.loading.readingFile, MESSAGES.success.fileLoaded, MESSAGES.errors.fileLoadFailed);
             this.populateTextarea(content);
-            console.log('Arquivo processado:', file.name);
         } catch (error) {
-            console.error('Erro ao ler arquivo:', error);
-            alert('Erro ao ler o conteúdo do arquivo.');
+            window.toastManager?.error("Não foi possível ler o arquivo.");
         }
     }
 
+    async handleDropzoneInputChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const validation = Utils.validateFile(file);
+        if (!validation.valid) {
+            window.toastManager?.error("Arquivo deve ser pdf ou txt");
+            return;
+        }
+
+        try {
+            const content = await window.toastManager?.loading(
+                this.readFileContent(file),
+                MESSAGES.loading.readingFile,
+                MESSAGES.success.fileLoaded,
+                MESSAGES.errors.fileLoadFailed
+            );
+            this.populateTextarea(content);
+        } catch (error) {
+            window.toastManager?.error("Não foi possível ler o arquivo.");
+        }
+    }
+
+
     async readFileContent(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                let content = e.target.result;
-                if (file.type === 'application/pdf')
-                    content = 'PDF text extraction requires additional library. Please copy and paste the text manually.';
-                resolve(content);
-            };
-            
-            reader.onerror = () => reject(new Error('Falha ao ler o arquivo'));
-            if (file.type === 'text/plain') {
+        return new Promise(async (resolve, reject) => {
+            if (!file) return reject(new Error('Nenhum arquivo selecionado'));
+
+            const fileType = file.type;
+
+            if (fileType === 'text/plain') {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Falha ao ler o arquivo de texto'));
                 reader.readAsText(file, 'UTF-8');
-            } else {
-                reader.readAsText(file, 'UTF-8');
+            }
+
+            else if (fileType === 'application/pdf') {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                    let fullText = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+
+                        // Group items by line (approximate by y position)
+                        const lines = {};
+                        for (const item of content.items) {
+                            const y = Math.floor(item.transform[5]); // y position
+                            if (!lines[y]) lines[y] = [];
+                            lines[y].push(item.str);
+                        }
+
+                        // Sort lines by y position (descending, because PDF coords start bottom-left)
+                        const sortedY = Object.keys(lines)
+                            .map(Number)
+                            .sort((a, b) => b - a);
+
+                        const pageText = sortedY
+                            .map(y => lines[y].join(' '))
+                            .join('\n');
+
+                        fullText += pageText + '\n\n';
+                    }
+
+                    resolve(fullText);
+                } catch (err) {
+                    reject(new Error('Erro ao extrair texto do PDF'));
+                }
+            }
+
+            else {
+                reject(new Error('Tipo de arquivo não suportado. Apenas PDF ou TXT são permitidos.'));
             }
         });
     }
@@ -205,11 +295,11 @@ class EmailService {
         return response;
     }
 
-    static async suggestResponse(email) {
+    static async suggestResponse(email, customizations = []) {
         const response = await fetch('/suggest', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email, customizations })
         });
         return response;
     }
@@ -256,7 +346,6 @@ class UIManager {
 
     async renderEmailComponent(email, container) {
         let template = this.emailProcessor.getTemplate();
-
         
         if (!template)
             return;
@@ -306,15 +395,20 @@ class EmailClassificationHandler {
                 email: emailText
             };
 
+            const customizationsElements = customizeSuggestionContainer.querySelectorAll('.chip-text')
+            const customizations = []
+
+            customizationsElements.forEach(item => customizations.push(item.innerHTML))
+
             if (shouldSuggest) {
-                result.suggestion = await this.generateSuggestion(emailText);
+                result.suggestion = await this.generateSuggestion(emailText, customizations);
             }
 
             this.emailProcessor.addEmail(result);
             await this.uiManager.updateProcessedEmailsList();
             await this.uiManager.goToProcessedEmail(id, classification);
 
-            this.clearEmailField();
+            this.clearForm();
 
         } catch (error) {
             console.error('Erro ao classificar o e-mail:', error);
@@ -345,8 +439,8 @@ class EmailClassificationHandler {
         return classification;
     }
 
-    async generateSuggestion(email) {
-        const suggestPromise = EmailService.suggestResponse(email);
+    async generateSuggestion(email, customizations = []) {
+        const suggestPromise = EmailService.suggestResponse(email, customizations);
         const response = await window.toastManager?.loading(
             suggestPromise,
             MESSAGES.loading.suggesting,
@@ -358,10 +452,21 @@ class EmailClassificationHandler {
         return suggestion;
     }
 
-    clearEmailField() {
+    clearForm() {
         const emailField = document.getElementById('email');
-        if (emailField) {
+        if (emailField)
             emailField.value = '';
+
+        const checkbox = document.getElementById('suggestion-checkbox');
+        if (checkbox)
+            checkbox.checked = false;
+
+        if (customizeSuggestionInput)
+            customizeSuggestionInput.value = ''
+        
+        if (customizeSuggestionContainer) {
+            const chips = customizeSuggestionContainer.querySelectorAll('.chipc');
+            chips.forEach(chip => chip.remove());
         }
     }
 }
